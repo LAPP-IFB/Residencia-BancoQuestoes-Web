@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { Button } from './ui/button';
 import {
   Dialog,
@@ -8,7 +9,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from './ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Tabs, TabsContent } from './ui/tabs';
 import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Badge } from './ui/badge';
@@ -38,7 +39,6 @@ import type { Question } from '../types/question';
 interface ExportImportDialogProps {
   questions: Question[];
   onImport: (questions: Question[]) => void;
-  /** Elemento que abre o dialog. Se omitido, usa o botão padrão. */
   trigger?: React.ReactNode;
 }
 
@@ -54,8 +54,6 @@ export function ExportImportDialog({
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // ── Exportar ──────────────────────────────────────────────────────────────
 
   const handleExport = () => {
     if (questions.length === 0) return;
@@ -84,8 +82,6 @@ export function ExportImportDialog({
       setIsProcessing(false);
     }, 500);
   };
-
-  // ── Importar ──────────────────────────────────────────────────────────────
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -131,8 +127,6 @@ export function ExportImportDialog({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -144,7 +138,7 @@ export function ExportImportDialog({
         )}
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="w-full max-w-md">
         <DialogHeader>
           <DialogTitle>Importar e Exportar Questões</DialogTitle>
           <DialogDescription>
@@ -157,19 +151,53 @@ export function ExportImportDialog({
           value={activeTab}
           onValueChange={(v) => setActiveTab(v as typeof activeTab)}
         >
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="export" className="gap-2">
-              <Download className="h-4 w-4" />
-              Exportar
-            </TabsTrigger>
-            <TabsTrigger value="import" className="gap-2">
-              <Upload className="h-4 w-4" />
-              Importar
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex w-full p-1 bg-muted rounded-lg mb-6 relative">
+            <button
+              type="button"
+              onClick={() => setActiveTab('export')}
+              className={`flex-1 relative flex items-center justify-center gap-2 py-2 text-sm font-medium transition-colors z-10 rounded-md outline-none ${
+                activeTab === 'export'
+                  ? 'text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {activeTab === 'export' && (
+                <motion.div
+                  layoutId="activeTabBackground"
+                  className="absolute inset-0 bg-background rounded-md shadow-sm"
+                  transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              <span className="relative flex items-center gap-2 z-20">
+                <Download className="h-4 w-4" />
+                Exportar
+              </span>
+            </button>
 
-          {/* ── ABA EXPORTAR ─────────────────────────────────────────────── */}
-          <TabsContent value="export" className="space-y-4 mt-4">
+            <button
+              type="button"
+              onClick={() => setActiveTab('import')}
+              className={`flex-1 relative flex items-center justify-center gap-2 py-2 text-sm font-medium transition-colors z-10 rounded-md outline-none ${
+                activeTab === 'import'
+                  ? 'text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {activeTab === 'import' && (
+                <motion.div
+                  layoutId="activeTabBackground"
+                  className="absolute inset-0 bg-background rounded-md shadow-sm"
+                  transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              <span className="relative flex items-center gap-2 z-20">
+                <Upload className="h-4 w-4" />
+                Importar
+              </span>
+            </button>
+          </div>
+
+          <TabsContent value="export" className="space-y-4 mt-0">
             <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
               <span className="text-sm text-muted-foreground">
                 Questões disponíveis para exportação:
@@ -184,7 +212,6 @@ export function ExportImportDialog({
                 onValueChange={(v) => setExportFormat(v as ExportFormat)}
                 className="space-y-2"
               >
-                {/* XML Moodle */}
                 <div
                   className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
                   onClick={() => setExportFormat('xml-moodle')}
@@ -205,7 +232,6 @@ export function ExportImportDialog({
                   </Label>
                 </div>
 
-                {/* CSV */}
                 <div
                   className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
                   onClick={() => setExportFormat('csv')}
@@ -225,14 +251,16 @@ export function ExportImportDialog({
               </RadioGroup>
             </div>
 
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertTitle>Dica</AlertTitle>
-              <AlertDescription>
-                Para importar no Moodle, vá em Administração do Curso &gt;
-                Banco de Questões &gt; Importar e selecione o formato
-                &quot;Moodle XML&quot;.
-              </AlertDescription>
+            <Alert className="flex items-start gap-3 py-3">
+              <Info className="h-4 w-4 mt-0.5 shrink-0" />
+              <div>
+                <AlertTitle className="mb-0.5">Dica</AlertTitle>
+                <AlertDescription>
+                  Para importar no Moodle, vá em Administração do Curso &gt;
+                  Banco de Questões &gt; Importar e selecione o formato
+                  &quot;Moodle XML&quot;.
+                </AlertDescription>
+              </div>
             </Alert>
 
             <Button
@@ -254,8 +282,7 @@ export function ExportImportDialog({
             </Button>
           </TabsContent>
 
-          {/* ── ABA IMPORTAR ─────────────────────────────────────────────── */}
-          <TabsContent value="import" className="space-y-4 mt-4">
+          <TabsContent value="import" className="space-y-4 mt-0">
             <div className="space-y-3">
               <Label>Selecionar arquivo</Label>
               <div
@@ -292,7 +319,6 @@ export function ExportImportDialog({
               </div>
             </div>
 
-            {/* Resultado da importação */}
             {importResult && (
               <div className="space-y-3">
                 {importResult.errors.length > 0 && (
@@ -406,14 +432,16 @@ export function ExportImportDialog({
               )}
             </div>
 
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertTitle>Como exportar do Moodle</AlertTitle>
-              <AlertDescription className="text-sm">
-                No Moodle, vá em Banco de Questões &gt; Exportar, selecione as
-                questões e escolha o formato &quot;Moodle XML&quot; para
-                download.
-              </AlertDescription>
+            <Alert className="flex items-start gap-3 py-3">
+              <Info className="h-4 w-4 mt-0.5 shrink-0" />
+              <div>
+                <AlertTitle className="mb-0.5">Como exportar do Moodle</AlertTitle>
+                <AlertDescription className="text-sm">
+                  No Moodle, vá em Banco de Questões &gt; Exportar, selecione as
+                  questões e escolha o formato &quot;Moodle XML&quot; para
+                  download.
+                </AlertDescription>
+              </div>
             </Alert>
           </TabsContent>
         </Tabs>
