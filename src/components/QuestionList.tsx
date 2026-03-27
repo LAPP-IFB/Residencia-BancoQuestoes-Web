@@ -13,19 +13,21 @@ import {
   SelectValue,
 } from './ui/select';
 import { Badge } from './ui/badge';
-import { Download, Search, X, Plus } from 'lucide-react';
+import { Download,Search, X, Plus } from 'lucide-react';
+import { ExportImportDialog } from './ExportImportDialog';
 
 interface QuestionListProps {
   questions: Question[];
-  // Removi categories e subjects das props pois vamos calcular dinamicamente
   onDeleteQuestion: (id: number) => void;
   onCreateNew?: () => void;
+  onImport?: (questions: Question[]) => void; // ← adicionar esta linha
 }
 
 export function QuestionList({
   questions,
   onDeleteQuestion,
   onCreateNew,
+  onImport,       
 }: QuestionListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
@@ -117,57 +119,7 @@ export function QuestionList({
     setSelectedTags([]);
   };
 
-  const exportToCSV = () => {
-    const headers = [
-      'ID',
-      'Professor',
-      'Disciplina',
-      'Tags',
-      'Enunciado',
-      'Opção A',
-      'Opção B',
-      'Opção C',
-      'Opção D',
-      'Opção E',
-      'Resposta Correta',
-      'Data de Criação',
-    ];
 
-    const rows = filteredQuestions.map((q) => [
-      q.id,
-      q.authorName,
-      q.subject, // Corrigido de q.Subject para q.subject (case sensitive)
-      q.tags?.join('; ') || '',
-      q.statement?.replace(/"/g, '""') || '',
-      q.options?.[0]?.replace(/"/g, '""') || '',
-      q.options?.[1]?.replace(/"/g, '""') || '',
-      q.options?.[2]?.replace(/"/g, '""') || '',
-      q.options?.[3]?.replace(/"/g, '""') || '',
-      q.options?.[4]?.replace(/"/g, '""') || '',
-      String.fromCharCode(65 + (q.correctOption || 0)),
-      q.createdAt ? new Date(q.createdAt).toLocaleDateString('pt-BR') : '',
-    ]);
-
-    const csvContent = [
-      headers.map((h) => `"${h}"`).join(','),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
-    ].join('\n');
-
-    const blob = new Blob(['\ufeff' + csvContent], {
-      type: 'text/csv;charset=utf-8;',
-    });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute(
-      'download',
-      `questoes_${new Date().toISOString().split('T')[0]}.csv`
-    );
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   const hasActiveFilters =
     searchTerm ||
@@ -308,39 +260,21 @@ export function QuestionList({
       </motion.div>
 
       {/* Results Header */}
-      <motion.div
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-      >
-        <div>
-          <p className="text-gray-700 text-sm sm:text-base">
-            {questions.length === 0
-              ? 'Nenhuma questão disponível'
-              : `${filteredQuestions.length} ${
-                  filteredQuestions.length === 1
-                    ? 'questão encontrada'
-                    : 'questões encontradas'
-                }`}
-          </p>
-        </div>
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+      
+    <ExportImportDialog
+      questions={filteredQuestions}
+      onImport={onImport ?? (() => {})}
+      trigger={
+        <Button
+          variant="outline"
+          disabled={questions.length === 0}
           className="w-full sm:w-auto"
         >
-          <Button
-            variant="outline"
-            onClick={exportToCSV}
-            disabled={filteredQuestions.length === 0 || questions.length === 0}
-            className="w-full sm:w-auto"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Exportar CSV
-          </Button>
-        </motion.div>
-      </motion.div>
+          <Download className="h-4 w-4 mr-2" />
+          Importar / Exportar
+        </Button>
+      }
+      />    
 
       {/* Questions List */}
       <div className="space-y-3 sm:space-y-4">
