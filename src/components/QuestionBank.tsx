@@ -28,6 +28,7 @@ const initialQuestions: Question[] = [
     authorId: 1,
     authorName: 'Prof. João Silva',
     subject: 'Matemática',
+    category: 'Matemática',
     tags: ['álgebra', 'equações'],
     statement: 'Qual o valor de x na equação: 2x + 5 = 15?',
     options: ['x = 3', 'x = 5', 'x = 7', 'x = 10', 'x = 15'],
@@ -39,6 +40,7 @@ const initialQuestions: Question[] = [
     authorId: 2,
     authorName: 'Prof. Maria Santos',
     subject: 'Português',
+    category: 'Português',
     tags: ['gramática', 'verbos'],
     statement: 'Qual é o tempo verbal da frase: "Eu estudarei amanhã"?',
     options: [
@@ -56,6 +58,7 @@ const initialQuestions: Question[] = [
     authorId: 1,
     authorName: 'Prof. João Silva',
     subject: 'História',
+    category: 'História',
     tags: ['brasil', 'independência'],
     statement: 'Em que ano ocorreu a Independência do Brasil?',
     options: ['1808', '1822', '1889', '1500', '1930'],
@@ -137,6 +140,28 @@ export function QuestionBank({ user, onLogout }: QuestionBankProps) {
     setQuestions(updatedQuestions);
     localStorage.setItem('questions', JSON.stringify(updatedQuestions));
     toast.success('Questão excluída com sucesso!');
+  };
+
+  const handleImport = (importedQuestions: Pick<Question, 'statement' | 'options' | 'correctOption' | 'category' | 'tags'>[]) => {
+    const existingIds = questions.map(q => q.id).filter(id => id !== undefined) as number[];
+    const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
+    const newQuestions: Question[] = importedQuestions.map((q, index) => ({
+      id: maxId + index + 1,
+      authorId: user.id,
+      authorName: user.name,
+      subject: q.category, // Assuming category is used as subject
+      category: q.category,
+      tags: q.tags,
+      statement: q.statement,
+      options: q.options,
+      correctOption: q.correctOption,
+      createdAt: new Date().toISOString(),
+    }));
+
+    const updatedQuestions = [...questions, ...newQuestions];
+    setQuestions(updatedQuestions);
+    localStorage.setItem('questions', JSON.stringify(updatedQuestions));
+    toast.success(`${newQuestions.length} questão(ões) importada(s) com sucesso!`);
   };
 
   const handleLogoutClick = () => {
@@ -231,8 +256,8 @@ export function QuestionBank({ user, onLogout }: QuestionBankProps) {
         ) : (
           <QuestionList
             questions={questions}
-            categories={categories}
             onDeleteQuestion={handleDeleteQuestion}
+            onImport={handleImport}
             onCreateNew={() => navigate('/questoes/nova')}
           />
         )}

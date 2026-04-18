@@ -53,10 +53,10 @@ export function NewQuestionPage({ user, onLogout }: NewQuestionPageProps) {
     navigate('/');
   };
 
-  const handleAddSubject = async (subjectName: string) => {
+  const handleAddSubject = async (subjectName: string): Promise<Subject | null> => {
     if (!subjectName.trim()) {
       toast.error('Preencha o nome da disciplina');
-      return;
+      return null;
     }
 
     try {

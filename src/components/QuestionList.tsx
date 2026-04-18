@@ -20,7 +20,7 @@ interface QuestionListProps {
   questions: Question[];
   onDeleteQuestion: (id: number) => void;
   onCreateNew?: () => void;
-  onImport?: (questions: Question[]) => void; // ← adicionar esta linha
+  onImport?: (questions: Pick<Question, 'statement' | 'options' | 'correctOption' | 'category' | 'tags'>[]) => void;
 }
 
 export function QuestionList({

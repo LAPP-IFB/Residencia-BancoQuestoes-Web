@@ -135,8 +135,7 @@ export default function App() {
       const apiUser = users[0]; // Pega o primeiro usuário que corresponde ao email
 
       if (apiUser) {
-        // A API retorna 'id' como número, mas o tipo User espera string.
-        const loggedUser = { ...apiUser, id: String(apiUser.id) };
+        const loggedUser = { ...apiUser };
         setUser(loggedUser);
         localStorage.setItem('currentUser', JSON.stringify(loggedUser));
       } else {
@@ -168,7 +167,7 @@ export default function App() {
 
     // Create new user
     const newUser = {
-      id: `user-${Date.now()}`,
+      id: Date.now(),
       name,
       email,
       password, // In production, this should be hashed
