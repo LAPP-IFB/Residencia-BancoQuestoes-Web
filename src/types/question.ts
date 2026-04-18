@@ -8,6 +8,7 @@ export interface Question {
   options: string[];
   correctOption: number; // 0-4
   createdAt: string;
+  category: string;
 }
 
 export interface Subject {
@@ -27,3 +28,16 @@ export interface Tag {
   id: number;
   name: string;
 }
+
+export interface Category {
+  id: string;
+  name: string;
+}
+
+export interface Teacher {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+}
+
