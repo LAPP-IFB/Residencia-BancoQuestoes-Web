@@ -16,6 +16,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Toaster } from './components/ui/sonner';
 import { User } from './types/question';
 import { RegisterScreen } from './components/RegisterScreen';
+import { GeradorQuestoesIA } from './components/GeradorQuestoesIA';
 
 // Mock user authentication
 function AnimatedRoutes({
@@ -86,6 +87,18 @@ function AnimatedRoutes({
           }
         />
 
+        {/* --- SUA NOVA ROTA ENTRA AQUI --- */}
+        <Route
+          path="/gerador-ia"
+          element={
+            <ProtectedRoute user={user}>
+              <GeradorQuestoesIA />
+            </ProtectedRoute>
+          }
+        />
+        {/* ------------------------------- */}
+
+        {/* Esta rota "*" DEVE ser sempre a última da lista */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>

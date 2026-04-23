@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Button } from './ui/button';
 import { QuestionList } from './QuestionList';
-import { LogOut, Plus, Settings } from 'lucide-react';
+import { LogOut, Plus, Settings, Sparkles } from 'lucide-react'; // <-- Adicionado apenas o Sparkles
 import { Question, Category, User } from '../types/question';
 import { Logo } from './Logo';
 import { toast } from 'sonner';
@@ -188,6 +188,24 @@ export function QuestionBank({ user, onLogout }: QuestionBankProps) {
                   </Button>
                 </motion.div>
               )}
+              
+              {/* --- BOTÃO IA ADICIONADO AQUI --- */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex-1 sm:flex-none"
+              >
+                <Button
+                  onClick={() => navigate('/gerador-ia')}
+                  className="w-full sm:w-auto"
+                >
+                  <Sparkles className="mr-1 sm:mr-2 h-4 w-4" />
+                  <span className="hidden xs:inline">Gerar com IA</span>
+                  <span className="xs:hidden">IA</span>
+                </Button>
+              </motion.div>
+              {/* ------------------------------- */}
+
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
