@@ -123,27 +123,41 @@ export default function App() {
       return;
     }
 
-    // Se não encontrar localmente, tenta a API (para contas de teste)
+    // Se não encontrar localmente, tenta a API REAL
     try {
       const response = await fetch(
-        `https://bancodequestoes-api.onrender.com/users?email=${email}`
+        'https://api-banco-questoes.onrender.com/api/login/', // URL CORRETA
+        {
+          method: 'POST', // Login exige POST
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          // ATENÇÃO: Confirme no Swagger se os campos são "email" e "senha" ou "username" e "password"
+          body: JSON.stringify({ email: email, senha: password }), 
+        }
       );
-      if (!response.ok) {
-        throw new Error('Falha ao conectar com o servidor.');
-      }
-      const users: User[] = await response.json();
-      const apiUser = users[0]; // Pega o primeiro usuário que corresponde ao email
 
-      if (apiUser) {
-        // A API retorna 'id' como número, mas o tipo User espera string.
-        const loggedUser = { ...apiUser, id: String(apiUser.id) };
-        setUser(loggedUser);
-        localStorage.setItem('currentUser', JSON.stringify(loggedUser));
-      } else {
-        throw new Error('Usuário não encontrado.');
+      if (!response.ok) {
+        throw new Error('E-mail ou senha inválidos no servidor.');
       }
+
+      // O back-end real deve retornar um Token JWT e os dados do usuário
+      const data = await response.json(); 
+      
+      // Adaptando o retorno da API para o formato que o seu front-end espera
+      const loggedUser = { 
+        id: data.id ? String(data.id) : `user-${Date.now()}`,
+        name: data.nome || data.name || 'Professor',
+        email: email,
+        role: 'professor' as const, // Forçando o tipo para evitar erro no TypeScript
+        // É recomendado salvar o Token que a API retorna aqui também!
+      };
+      
+      setUser(loggedUser);
+      localStorage.setItem('currentUser', JSON.stringify(loggedUser));
+      
     } catch (error) {
-      throw new Error('Usuário não encontrado.');
+      throw new Error('Usuário não encontrado ou credenciais inválidas.');
     }
   };
 
