@@ -17,7 +17,6 @@ import { Toaster } from './components/ui/sonner';
 import { User } from './types/question';
 import { RegisterScreen } from './components/RegisterScreen';
 
-// Mock user authentication
 function AnimatedRoutes({
   user,
   handleLogin,
@@ -96,7 +95,6 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if user is logged in (from localStorage)
   useEffect(() => {
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
@@ -106,14 +104,13 @@ export default function App() {
   }, []);
 
   const handleLogin = async (email: string, password: string) => {
-    // Primeiro, verifica usuários registrados localmente
+    // 1. Verifica usuários registrados localmente primeiro
     const registeredUsers = JSON.parse(
       localStorage.getItem('registeredUsers') || '[]'
     );
     const localUser = registeredUsers.find((u: any) => u.email === email);
 
     if (localUser) {
-      // Valida a senha para usuários locais
       if (localUser.password !== password) {
         throw new Error('E-mail ou senha inválidos.');
       }
@@ -123,26 +120,37 @@ export default function App() {
       return;
     }
 
-    // Se não encontrar localmente, tenta a API (para contas de teste)
+    // 2. Se não encontrar localmente, tenta a API real via POST
     try {
       const response = await fetch(
-        `https://bancodequestoes-api.onrender.com/users?email=${email}`
+        'https://api-banco-questoes.onrender.com/api/login/',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: email, senha: password }),
+        }
       );
-      if (!response.ok) {
-        throw new Error('Falha ao conectar com o servidor.');
-      }
-      const users: User[] = await response.json();
-      const apiUser = users[0]; // Pega o primeiro usuário que corresponde ao email
 
-      if (apiUser) {
-        const loggedUser = { ...apiUser };
-        setUser(loggedUser);
-        localStorage.setItem('currentUser', JSON.stringify(loggedUser));
-      } else {
-        throw new Error('Usuário não encontrado.');
+      if (!response.ok) {
+        throw new Error('E-mail ou senha inválidos no servidor.');
       }
+
+      const data = await response.json();
+
+      const loggedUser: User = {
+        id: data.id ? Number(data.id) : Date.now(),
+        name: data.nome || data.name || 'Professor',
+        email: email,
+        role: 'professor' as const,
+      };
+
+      setUser(loggedUser);
+      localStorage.setItem('currentUser', JSON.stringify(loggedUser));
+
     } catch (error) {
-      throw new Error('Usuário não encontrado.');
+      throw new Error('Usuário não encontrado ou credenciais inválidas.');
     }
   };
 
@@ -151,12 +159,10 @@ export default function App() {
     email: string,
     password: string
   ): boolean => {
-    // Check if email already exists
     const registeredUsers = JSON.parse(
       localStorage.getItem('registeredUsers') || '[]'
     );
 
-    // Check for duplicate email (including test accounts)
     if (
       email === 'coordenador@escola.com' ||
       email === 'professor@escola.com' ||
@@ -165,17 +171,15 @@ export default function App() {
       return false;
     }
 
-    // Create new user
     const newUser = {
-      id: Date.now(),
+      id: `user-${Date.now()}`,
       name,
       email,
-      password, // In production, this should be hashed
-      role: 'professor' as const, // New registrations are always professors
+      password,
+      role: 'professor' as const,
       createdAt: new Date().toISOString(),
     };
 
-    // Save to localStorage
     registeredUsers.push(newUser);
     localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
 
