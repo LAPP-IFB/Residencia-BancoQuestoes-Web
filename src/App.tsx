@@ -16,9 +16,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Toaster } from './components/ui/sonner';
 import { User } from './types/question';
 import { RegisterScreen } from './components/RegisterScreen';
-import { GeradorQuestoesIA } from './components/GeradorQuestoesIA';
 
-// Mock user authentication
 function AnimatedRoutes({
   user,
   handleLogin,
@@ -87,18 +85,6 @@ function AnimatedRoutes({
           }
         />
 
-        {/* --- SUA NOVA ROTA ENTRA AQUI --- */}
-        <Route
-          path="/gerador-ia"
-          element={
-            <ProtectedRoute user={user}>
-              <GeradorQuestoesIA />
-            </ProtectedRoute>
-          }
-        />
-        {/* ------------------------------- */}
-
-        {/* Esta rota "*" DEVE ser sempre a última da lista */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
@@ -109,7 +95,6 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if user is logged in (from localStorage)
   useEffect(() => {
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
@@ -119,14 +104,13 @@ export default function App() {
   }, []);
 
   const handleLogin = async (email: string, password: string) => {
-    // Primeiro, verifica usuários registrados localmente
+    // 1. Verifica usuários registrados localmente primeiro
     const registeredUsers = JSON.parse(
       localStorage.getItem('registeredUsers') || '[]'
     );
     const localUser = registeredUsers.find((u: any) => u.email === email);
 
     if (localUser) {
-      // Valida a senha para usuários locais
       if (localUser.password !== password) {
         throw new Error('E-mail ou senha inválidos.');
       }
@@ -136,17 +120,17 @@ export default function App() {
       return;
     }
 
-    // Se não encontrar localmente, tenta a API REAL
+    // 2. Se não encontrar localmente, tenta a API real via POST
     try {
       const response = await fetch(
-        'https://api-banco-questoes.onrender.com/api/login/', // URL CORRETA
+        '/api/login/',
         {
-          method: 'POST', // Login exige POST
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          // ATENÇÃO: Confirme no Swagger se os campos são "email" e "senha" ou "username" e "password"
-          body: JSON.stringify({ email: email, senha: password }), 
+          // A API usa "username" e "password" (padrão Django JWT — confirmado na doc)
+          body: JSON.stringify({ username: email, password: password }),
         }
       );
 
@@ -154,21 +138,22 @@ export default function App() {
         throw new Error('E-mail ou senha inválidos no servidor.');
       }
 
-      // O back-end real deve retornar um Token JWT e os dados do usuário
-      const data = await response.json(); 
-      
-      // Adaptando o retorno da API para o formato que o seu front-end espera
-      const loggedUser = { 
-        id: data.id ? String(data.id) : `user-${Date.now()}`,
-        name: data.nome || data.name || 'Professor',
+      const data = await response.json();
+      // O login retorna { access, refresh } — salva o token para usar nas próximas requisições
+      if (data.access) {
+        localStorage.setItem('authToken', data.access);
+      }
+
+      const loggedUser: User = {
+        id: Date.now(), // A API de login não retorna id do usuário, usamos fallback
+        name: email,   // Idem para o nome — pode ser atualizado depois com GET /api/usuarios/
         email: email,
-        role: 'professor' as const, // Forçando o tipo para evitar erro no TypeScript
-        // É recomendado salvar o Token que a API retorna aqui também!
+        role: 'professor', // Padrão; coordenador é identificado após buscar perfil
       };
-      
+
       setUser(loggedUser);
       localStorage.setItem('currentUser', JSON.stringify(loggedUser));
-      
+
     } catch (error) {
       throw new Error('Usuário não encontrado ou credenciais inválidas.');
     }
@@ -179,12 +164,10 @@ export default function App() {
     email: string,
     password: string
   ): boolean => {
-    // Check if email already exists
     const registeredUsers = JSON.parse(
       localStorage.getItem('registeredUsers') || '[]'
     );
 
-    // Check for duplicate email (including test accounts)
     if (
       email === 'coordenador@escola.com' ||
       email === 'professor@escola.com' ||
@@ -193,17 +176,15 @@ export default function App() {
       return false;
     }
 
-    // Create new user
     const newUser = {
       id: `user-${Date.now()}`,
       name,
       email,
-      password, // In production, this should be hashed
-      role: 'professor' as const, // New registrations are always professors
+      password,
+      role: 'professor' as const,
       createdAt: new Date().toISOString(),
     };
 
-    // Save to localStorage
     registeredUsers.push(newUser);
     localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
 
