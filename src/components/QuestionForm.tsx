@@ -40,7 +40,7 @@ interface ImageState {
 interface QuestionFormProps {
   subjects: Subject[];
   onSubmit: (question: Question) => void;
-  onAddSubject: (name: string) => Subject;
+  onAddSubject: (name: string) => Promise<Subject | null>;
   onCancel: () => void;
   initialQuestion?: Question;
   isEditing?: boolean;
@@ -233,11 +233,13 @@ export function QuestionForm({
     setOptions(newOptions);
   };
 
-  const handleCreatesubject = () => {
+  const handleCreatesubject = async () => {
     if (newsubjectName.trim()) {
-      const newsubject = onAddSubject(newsubjectName.trim());
-      setSubject(newsubject.name);
-      setNewsubjectName('');
+      const newsubject = await onAddSubject(newsubjectName.trim());
+      if (newsubject) {
+        setSubject(newsubject.name);
+        setNewsubjectName('');
+      }
     }
   };
 
