@@ -25,40 +25,20 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (email && password) {
+    e.preventDefault();
+    if (!email || !password) return;
+
     setLoading(true);
     try {
-      // Chamada à API
-      const response = await fetch("https://bancodequestoes-api.onrender.com/users?email="+email);
-      if (!response.ok) {
-        throw new Error("Erro ao buscar usuários");
-      }
-
-      const users = await response.json();
-
-      // Verifica se existe usuário com esse email
-      const user = users.find((u: any) => u.email === email);
-
-      if (!user) {
-        throw new Error("Usuário não encontrado");
-      }
-
-      // Aqui você poderia validar a senha também, se a API retornar
-      // por enquanto vamos assumir que qualquer senha é aceita
-
-      // Redireciona conforme o role
+      // Delega toda a lógica de autenticação para o App.tsx
       await onLogin(email, password);
-      navigate("/");
-      
+      navigate('/');
     } catch (error) {
-      toast.error((error as Error).message || "E-mail ou senha inválidos.");
+      toast.error((error as Error).message || 'Usuário ou senha inválidos.');
     } finally {
       setLoading(false);
     }
-  }
-};
-
+  };
 
   return (
     <motion.div
@@ -71,11 +51,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       <motion.div
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
-        transition={{
-          delay: 0.1,
-          duration: 0.4,
-          type: 'spring',
-        }}
+        transition={{ delay: 0.1, duration: 0.4, type: 'spring' }}
         className="w-full max-w-md"
       >
         <Card className="w-full">
@@ -106,16 +82,16 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <Label htmlFor="email">Email</Label>
+                {/* FIX: type="text" permite username sem @ */}
+                <Label htmlFor="email">Usuário ou E-mail</Label>
                 <Input
                   id="email"
-                  type="email"
-                  placeholder="professor@escola.com"
+                  type="text"
+                  placeholder="seu.usuario ou professor@escola.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
-                
               </motion.div>
               <motion.div
                 className="space-y-2"

@@ -54,10 +54,16 @@
       target: 'esnext',
       outDir: 'build',
     },
-    server: {
-      port: 3000,
-      open: true,
-    },
+  server: {
+  port: 3000,
+  open: true,
+  proxy: {
+    '/api': {
+      target: 'https://api-banco-questoes.onrender.com',
+      changeOrigin: true,
+    }
+  }
+},
     // Allow preview to accept requests from this external host
     preview: {
       allowedHosts: ['desafio-bancodequestoes.onrender.com'],
