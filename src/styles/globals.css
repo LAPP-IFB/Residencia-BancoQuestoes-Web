@@ -121,11 +121,13 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    border-color: var(--border);
+    outline-color: var(--ring);
   }
 
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--background);
+    color: var(--foreground);
   }
 }
 
@@ -217,4 +219,13 @@ html {
   html {
     font-size: 15px;
   }
+}
+
+[data-slot="dialog-content"] {
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 90vh !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  gap: 0 !important;
 }

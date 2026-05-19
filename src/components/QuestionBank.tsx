@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Button } from './ui/button';
 import { QuestionList } from './QuestionList';
-import { LogOut, Plus, Settings, Sparkles } from 'lucide-react'; // <-- Adicionado apenas o Sparkles
+import { LogOut, Plus, Settings, Sparkles } from 'lucide-react';
 import { Question, Category, User } from '../types/question';
 import { Logo } from './Logo';
 import { toast } from 'sonner';
@@ -13,7 +13,6 @@ interface QuestionBankProps {
   onLogout: () => void;
 }
 
-// Mock initial data
 const initialCategories: Category[] = [
   { id: '1', name: 'Matemática' },
   { id: '2', name: 'Português' },
@@ -30,6 +29,7 @@ const initialQuestions: Question[] = [
     subject: 'Matemática',
     category: 'Matemática',
     tags: ['álgebra', 'equações'],
+    type: 'multiple_choice',
     statement: 'Qual o valor de x na equação: 2x + 5 = 15?',
     options: ['x = 3', 'x = 5', 'x = 7', 'x = 10', 'x = 15'],
     correctOption: 1,
@@ -39,19 +39,15 @@ const initialQuestions: Question[] = [
     id: 2,
     authorId: 2,
     authorName: 'Prof. Maria Santos',
-    subject: 'Português',
-    category: 'Português',
-    tags: ['gramática', 'verbos'],
-    statement: 'Qual é o tempo verbal da frase: "Eu estudarei amanhã"?',
-    options: [
-      'Presente do indicativo',
-      'Pretérito perfeito',
-      'Futuro do presente',
-      'Pretérito imperfeito',
-      'Futuro do pretérito',
-    ],
-    correctOption: 2,
-    createdAt: '2024-01-16T14:20:00Z',
+    subject: 'Ciências',
+    category: 'Ciências',
+    tags: ['biologia', 'células'],
+    type: 'true_false',
+    statement: 'A fotossíntese é o processo pelo qual as plantas produzem energia a partir da luz solar, água e gás carbônico.',
+    options: [],
+    correctOption: 0,
+    correctAnswer: true,
+    createdAt: '2024-01-18T11:00:00Z',
   },
   {
     id: 3,
@@ -59,108 +55,87 @@ const initialQuestions: Question[] = [
     authorName: 'Prof. João Silva',
     subject: 'História',
     category: 'História',
-    tags: ['brasil', 'independência'],
-    statement: 'Em que ano ocorreu a Independência do Brasil?',
-    options: ['1808', '1822', '1889', '1500', '1930'],
-    correctOption: 1,
-    createdAt: '2024-01-17T09:15:00Z',
+    tags: ['brasil', 'república'],
+    type: 'essay',
+    statement: 'Explique as principais causas que levaram à Proclamação da República no Brasil em 1889.',
+    options: [],
+    correctOption: 0,
+    createdAt: '2024-01-19T08:30:00Z',
   },
 ];
 
 export function QuestionBank({ user, onLogout }: QuestionBankProps) {
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Load data from API or use initial data
+  // ── Carregar dados ────────────────────────────────────────────────────────
+
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        const response = await fetch(
-          'https://bancodequestoes-api.onrender.com/questions'
-        );
+        const response = await fetch('https://bancodequestoes-api.onrender.com/questions');
         if (response.ok) {
-          const questionsFromApi = await response.json();
-          setQuestions(questionsFromApi);
-          localStorage.setItem('questions', JSON.stringify(questionsFromApi));
+          const data = await response.json();
+          setQuestions(data);
+          localStorage.setItem('questions', JSON.stringify(data));
         } else {
-          // Fallback to localStorage or initial data
-          const savedQuestions = localStorage.getItem('questions');
-          if (savedQuestions) {
-            setQuestions(JSON.parse(savedQuestions));
-          } else {
-            setQuestions(initialQuestions);
-            localStorage.setItem('questions', JSON.stringify(initialQuestions));
-          }
+          loadFromLocalStorage();
         }
       } catch (error) {
-        console.error('Error fetching questions:', error);
-        // Fallback to localStorage or initial data
-        const savedQuestions = localStorage.getItem('questions');
-        if (savedQuestions) {
-          setQuestions(JSON.parse(savedQuestions));
-        } else {
-          setQuestions(initialQuestions);
-          localStorage.setItem('questions', JSON.stringify(initialQuestions));
-        }
+        console.error('Erro ao buscar questões:', error);
+        loadFromLocalStorage();
       } finally {
         setLoading(false);
       }
     };
 
+    const loadFromLocalStorage = () => {
+      const saved = localStorage.getItem('questions');
+      if (saved) {
+        setQuestions(JSON.parse(saved));
+      } else {
+        setQuestions(initialQuestions);
+        localStorage.setItem('questions', JSON.stringify(initialQuestions));
+      }
+    };
+
     fetchQuestions();
-
-    // Load categories from subjects
-    const savedSubjects = localStorage.getItem('subjects');
-    const savedCategories = localStorage.getItem('categories');
-
-    // Prioritize subjects from admin panel
-    if (savedSubjects) {
-      const subjects = JSON.parse(savedSubjects);
-      const categoriesFromSubjects = subjects.map((s: any) => ({
-        id: s.id,
-        name: s.name,
-      }));
-      setCategories(categoriesFromSubjects);
-      localStorage.setItem(
-        'categories',
-        JSON.stringify(categoriesFromSubjects)
-      );
-    } else if (savedCategories) {
-      setCategories(JSON.parse(savedCategories));
-    } else {
-      setCategories(initialCategories);
-      localStorage.setItem('categories', JSON.stringify(initialCategories));
-    }
   }, []);
 
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
   const handleDeleteQuestion = (id: number) => {
-    const updatedQuestions = questions.filter((q) => q.id !== id);
-    setQuestions(updatedQuestions);
-    localStorage.setItem('questions', JSON.stringify(updatedQuestions));
+    const updated = questions.filter((q) => q.id !== id);
+    setQuestions(updated);
+    localStorage.setItem('questions', JSON.stringify(updated));
     toast.success('Questão excluída com sucesso!');
   };
 
-  const handleImport = (importedQuestions: Pick<Question, 'statement' | 'options' | 'correctOption' | 'category' | 'tags'>[]) => {
-    const existingIds = questions.map(q => q.id).filter(id => id !== undefined) as number[];
+  const handleImport = (
+    imported: Pick<Question, 'statement' | 'options' | 'correctOption' | 'category' | 'tags' | 'type' | 'correctAnswer'>[]
+  ) => {
+    const existingIds = questions.map((q) => q.id).filter((id): id is number => id !== undefined);
     const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
-    const newQuestions: Question[] = importedQuestions.map((q, index) => ({
+
+    const newQuestions: Question[] = imported.map((q, index) => ({
       id: maxId + index + 1,
       authorId: user.id,
       authorName: user.name,
-      subject: q.category, // Assuming category is used as subject
+      subject: q.category,
       category: q.category,
       tags: q.tags,
+      type: q.type ?? 'multiple_choice',
       statement: q.statement,
       options: q.options,
       correctOption: q.correctOption,
+      correctAnswer: q.correctAnswer,
       createdAt: new Date().toISOString(),
     }));
 
-    const updatedQuestions = [...questions, ...newQuestions];
-    setQuestions(updatedQuestions);
-    localStorage.setItem('questions', JSON.stringify(updatedQuestions));
+    const updated = [...questions, ...newQuestions];
+    setQuestions(updated);
+    localStorage.setItem('questions', JSON.stringify(updated));
     toast.success(`${newQuestions.length} questão(ões) importada(s) com sucesso!`);
   };
 
@@ -168,6 +143,8 @@ export function QuestionBank({ user, onLogout }: QuestionBankProps) {
     onLogout();
     navigate('/login');
   };
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <motion.div
@@ -195,31 +172,19 @@ export function QuestionBank({ user, onLogout }: QuestionBankProps) {
                 </p>
               </div>
             </div>
+
             <div className="flex gap-2 sm:gap-3 flex-wrap sm:flex-nowrap">
               {user.role === 'coordenador' && (
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="flex-1 sm:flex-none"
-                >
-                  <Button
-                    variant="outline"
-                    onClick={() => navigate('/admin')}
-                    className="w-full sm:w-auto"
-                  >
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 sm:flex-none">
+                  <Button variant="outline" onClick={() => navigate('/admin')} className="w-full sm:w-auto">
                     <Settings className="mr-1 sm:mr-2 h-4 w-4" />
-                    <span className="hidden xs:inline">Admin</span>
-                    <span className="xs:hidden">Admin</span>
+                    Admin
                   </Button>
                 </motion.div>
               )}
-              
-              {/* --- BOTÃO IA ADICIONADO AQUI --- */}
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex-1 sm:flex-none"
-              >
+
+              {/* Botão IA — mantido como está no projeto atual */}
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 sm:flex-none">
                 <Button
                   onClick={() => navigate('/gerador-ia')}
                   className="w-full sm:w-auto"
@@ -229,32 +194,17 @@ export function QuestionBank({ user, onLogout }: QuestionBankProps) {
                   <span className="xs:hidden">IA</span>
                 </Button>
               </motion.div>
-              {/* ------------------------------- */}
 
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex-1 sm:flex-none"
-              >
-                <Button
-                  onClick={() => navigate('/questoes/nova')}
-                  className="w-full sm:w-auto"
-                >
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 sm:flex-none">
+                <Button onClick={() => navigate('/questoes/nova')} className="w-full sm:w-auto">
                   <Plus className="mr-1 sm:mr-2 h-4 w-4" />
                   <span className="hidden xs:inline">Nova Questão</span>
                   <span className="xs:hidden">Nova</span>
                 </Button>
               </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex-1 sm:flex-none"
-              >
-                <Button
-                  variant="outline"
-                  onClick={handleLogoutClick}
-                  className="w-full sm:w-auto"
-                >
+
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 sm:flex-none">
+                <Button variant="outline" onClick={handleLogoutClick} className="w-full sm:w-auto">
                   <LogOut className="mr-1 sm:mr-2 h-4 w-4" />
                   Sair
                 </Button>
@@ -264,11 +214,11 @@ export function QuestionBank({ user, onLogout }: QuestionBankProps) {
         </div>
       </motion.header>
 
-      {/* Main Content */}
+      {/* Conteúdo */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {loading ? (
           <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600" />
             <span className="ml-2 text-gray-600">Carregando questões...</span>
           </div>
         ) : (
