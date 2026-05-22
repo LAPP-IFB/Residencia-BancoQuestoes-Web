@@ -16,6 +16,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Toaster } from './components/ui/sonner';
 import { User } from './types/question';
 import { RegisterScreen } from './components/RegisterScreen';
+import { GeradorQuestoesIA } from './components/GeradorQuestoesIA';
 
 function AnimatedRoutes({
   user,
@@ -85,6 +86,15 @@ function AnimatedRoutes({
           }
         />
 
+        <Route
+          path="/gerador-ia"
+          element={
+            <ProtectedRoute user={user}>
+              <GeradorQuestoesIA />
+            </ProtectedRoute>
+          }
+        />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
@@ -138,7 +148,7 @@ export default function App() {
         throw new Error('E-mail ou senha inválidos no servidor.');
       }
 
-      const data = await response.json();
+      const data = await response.json(); 
       // O login retorna { access, refresh } — salva o token para usar nas próximas requisições
       if (data.access) {
         localStorage.setItem('authToken', data.access);
@@ -150,10 +160,10 @@ export default function App() {
         email: email,
         role: 'professor', // Padrão; coordenador é identificado após buscar perfil
       };
-
+      
       setUser(loggedUser);
       localStorage.setItem('currentUser', JSON.stringify(loggedUser));
-
+      
     } catch (error) {
       throw new Error('Usuário não encontrado ou credenciais inválidas.');
     }
