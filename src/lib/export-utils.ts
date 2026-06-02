@@ -118,101 +118,118 @@ export function exportToCsv(questions: Question[]): string {
 // EXPORTAR MOODLE XML
 // Suporta multiple_choice, true_false e essay
 // ─────────────────────────────────────────────
-
 export function exportToMoodleXml(questions: Question[]): string {
-  const questionsXml = questions.map((q) => {
+  const xmlParts: string[] = [];
+
+  let currentCategory = '';
+
+  for (const q of questions) {
+    const category = (q.category || q.subject || 'Sem disciplina').trim();
+
+    if (category !== currentCategory) {
+      currentCategory = category;
+
+      xmlParts.push(`
+  <question type="category">
+    <category>
+      <text>$course$/top/${escapeXml(category)}</text>
+    </category>
+  </question>`);
+    }
+
     const qType = getQuestionType(q);
+
     const nameText = escapeXml(
-      `${q.category || 'Sem disciplina'} - ${stripHtml(q.statement).slice(0, 60)}...`
+      `${category} - ${stripHtml(q.statement).slice(0, 60)}`
     );
+
     const statementCdata = `<![CDATA[${q.statement}]]>`;
+
     const tagsXml =
       (q.tags ?? []).length > 0
-        ? `\n    <tags>\n${q.tags.map((t) => `      <tag><text>${escapeXml(t)}</text></tag>`).join('\n')}\n    </tags>`
+        ? `
+    <tags>
+${q.tags
+  .map(
+    (tag) =>
+      `      <tag><text>${escapeXml(tag)}</text></tag>`
+  )
+  .join('\n')}
+    </tags>`
         : '';
 
-    // ── Múltipla escolha ─────────────────────────────────────────────────
     if (qType === 'multiple_choice') {
       const correctIndex = q.correctOption ?? 0;
+
       const answersXml = (q.options ?? [])
         .filter(Boolean)
-        .map((opt, i) => `
-    <answer fraction="${i === correctIndex ? '100' : '0'}" format="html">
+        .map(
+          (opt, index) => `
+    <answer fraction="${index === correctIndex ? '100' : '0'}" format="html">
       <text><![CDATA[${opt}]]></text>
-      <feedback format="html"><text></text></feedback>
-    </answer>`)
+      <feedback format="html">
+        <text></text>
+      </feedback>
+    </answer>`
+        )
         .join('');
 
-      return `
+      xmlParts.push(`
   <question type="multichoice">
-    <name><text>${nameText}</text></name>
-    <questiontext format="html"><text>${statementCdata}</text></questiontext>
-    <generalfeedback format="html"><text></text></generalfeedback>
-    <defaultgrade>1</defaultgrade>
-    <penalty>0.3333333</penalty>
-    <hidden>0</hidden>
-    <idnumber></idnumber>
+    <name>
+      <text>${nameText}</text>
+    </name>
+    <questiontext format="html">
+      <text>${statementCdata}</text>
+    </questiontext>
     <single>true</single>
     <shuffleanswers>true</shuffleanswers>
     <answernumbering>abc</answernumbering>
-    <showstandardinstruction>0</showstandardinstruction>
-    <correctfeedback format="html"><text>Sua resposta está correta.</text></correctfeedback>
-    <partiallycorrectfeedback format="html"><text>Sua resposta está parcialmente correta.</text></partiallycorrectfeedback>
-    <incorrectfeedback format="html"><text>Sua resposta está incorreta.</text></incorrectfeedback>
-    <shownumcorrect/>${answersXml}${tagsXml}
-  </question>`;
+${answersXml}${tagsXml}
+  </question>`);
     }
 
-    // ── Verdadeiro/Falso ─────────────────────────────────────────────────
-    if (qType === 'true_false') {
+    else if (qType === 'true_false') {
       const trueCorrect = q.correctAnswer ?? true;
-      return `
+
+      xmlParts.push(`
   <question type="truefalse">
-    <name><text>${nameText}</text></name>
-    <questiontext format="html"><text>${statementCdata}</text></questiontext>
-    <generalfeedback format="html"><text></text></generalfeedback>
-    <defaultgrade>1</defaultgrade>
-    <penalty>1.0000000</penalty>
-    <hidden>0</hidden>
-    <idnumber></idnumber>
-    <answer fraction="${trueCorrect ? '100' : '0'}" format="moodle_auto_format">
+    <name>
+      <text>${nameText}</text>
+    </name>
+    <questiontext format="html">
+      <text>${statementCdata}</text>
+    </questiontext>
+
+    <answer fraction="${trueCorrect ? '100' : '0'}">
       <text>true</text>
-      <feedback format="html"><text></text></feedback>
     </answer>
-    <answer fraction="${trueCorrect ? '0' : '100'}" format="moodle_auto_format">
+
+    <answer fraction="${trueCorrect ? '0' : '100'}">
       <text>false</text>
-      <feedback format="html"><text></text></feedback>
-    </answer>${tagsXml}
-  </question>`;
+    </answer>
+
+${tagsXml}
+  </question>`);
     }
 
-    // ── Questão aberta (essay) ────────────────────────────────────────────
-    return `
+    else {
+      xmlParts.push(`
   <question type="essay">
-    <name><text>${nameText}</text></name>
-    <questiontext format="html"><text>${statementCdata}</text></questiontext>
-    <generalfeedback format="html"><text></text></generalfeedback>
-    <defaultgrade>1.0000000</defaultgrade>
-    <penalty>0.0000000</penalty>
-    <hidden>0</hidden>
-    <idnumber></idnumber>
-    <responseformat>plain</responseformat>
-    <responserequired>1</responserequired>
-    <responsefieldlines>10</responsefieldlines>
-    <minwordlimit></minwordlimit>
-    <maxwordlimit></maxwordlimit>
-    <attachments>0</attachments>
-    <attachmentsrequired>0</attachmentsrequired>
-    <maxbytes>0</maxbytes>
-    <filetypeslist></filetypeslist>
-    <graderinfo format="html"><text></text></graderinfo>
-    <responsetemplate format="html"><text></text></responsetemplate>${tagsXml}
-  </question>`;
-  });
+    <name>
+      <text>${nameText}</text>
+    </name>
+    <questiontext format="html">
+      <text>${statementCdata}</text>
+    </questiontext>
+${tagsXml}
+  </question>`);
+    }
+  }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <quiz>
-${questionsXml.join('\n')}
+${xmlParts.join('\n')}
 </quiz>`;
 }
 
@@ -220,142 +237,199 @@ ${questionsXml.join('\n')}
 // IMPORTAR MOODLE XML
 // Suporta multichoice, truefalse e essay
 // ─────────────────────────────────────────────
-
 export function importFromMoodleXml(xmlContent: string): ImportResult {
   const errors: string[] = [];
   const warnings: string[] = [];
   const questions: ParsedQuestion[] = [];
 
   let doc: Document;
+
   try {
     const parser = new DOMParser();
-    doc = parser.parseFromString(xmlContent, 'application/xml');
-    const parseError = doc.querySelector('parsererror');
-    if (parseError) {
+
+    doc = parser.parseFromString(
+      xmlContent,
+      'application/xml'
+    );
+
+    if (doc.querySelector('parsererror')) {
       return {
-        success: false, questions: [],
-        errors: ['O arquivo XML está malformado. Verifique se foi exportado corretamente do Moodle.'],
+        success: false,
+        questions: [],
+        errors: ['XML inválido'],
         warnings: [],
       };
     }
   } catch {
     return {
-      success: false, questions: [],
-      errors: ['Não foi possível processar o arquivo XML.'],
+      success: false,
+      questions: [],
+      errors: ['Erro ao ler XML'],
       warnings: [],
     };
   }
 
-  const questionNodes = doc.querySelectorAll(
-    'question[type="multichoice"], question[type="truefalse"], question[type="essay"]'
+  const allNodes = Array.from(
+    doc.querySelectorAll('quiz > question')
   );
 
-  if (questionNodes.length === 0) {
-    return {
-      success: false, questions: [],
-      errors: [
-        'Nenhuma questão suportada encontrada. ' +
-        'São aceitos: Múltipla Escolha (multichoice), Verdadeiro/Falso (truefalse) e Questão Aberta (essay).',
-      ],
-      warnings: [],
-    };
-  }
+  let currentCategory = 'Importada do Moodle';
 
-  questionNodes.forEach((node, index) => {
+  for (const node of allNodes) {
     try {
-      const moodleType = node.getAttribute('type') ?? '';
+      const nodeType = node.getAttribute('type');
 
-      // Mapeia tipo Moodle → tipo interno
-      let type: QuestionType = 'multiple_choice';
-      if (moodleType === 'truefalse') type = 'true_false';
-      if (moodleType === 'essay') type = 'essay';
+      if (nodeType === 'category') {
+        const categoryPath =
+          node
+            .querySelector('category text')
+            ?.textContent
+            ?.trim() ?? '';
 
-      // Enunciado
-      const statementRaw = node.querySelector('questiontext text')?.textContent?.trim() ?? '';
-      if (!stripHtml(statementRaw)) {
-        warnings.push(`Questão ${index + 1}: enunciado vazio — será ignorada.`);
-        return;
-      }
-      const statement = statementRaw; // mantém HTML (renderizado com dangerouslySetInnerHTML)
+        const lastPart =
+          categoryPath.split('/').pop()?.trim() ?? '';
 
-      // Tags
-      const tags: string[] = Array.from(node.querySelectorAll('tags tag text'))
-        .map((t) => t.textContent?.trim() ?? '')
-        .filter(Boolean);
-
-      // Categoria — infere pelo campo <name> ou fallback para tags
-      const nameText = node.querySelector('name text')?.textContent?.trim() ?? '';
-      const categoryFromName = nameText.includes(' - ') ? nameText.split(' - ')[0].trim() : '';
-      const category = categoryFromName || tags[0] || 'Importada do Moodle';
-
-      // ── Múltipla escolha ───────────────────────────────────────────────
-      if (type === 'multiple_choice') {
-        const answerNodes = node.querySelectorAll('answer');
-        const options: string[] = [];
-        let correctOption = 0;
-        let optIdx = 0;
-
-        answerNodes.forEach((answer) => {
-          // :scope > text evita pegar texto do <feedback>
-          const textEl = answer.querySelector(':scope > text') ?? answer.querySelector('text');
-          const rawText = textEl?.textContent?.trim() ?? '';
-          const text = stripHtml(rawText); // remove <p dir="ltr"> que o Moodle injeta
-          const fraction = parseFloat(answer.getAttribute('fraction') ?? '0');
-          if (text) {
-            options.push(text);
-            if (fraction > 0) correctOption = optIdx;
-            optIdx++;
-          }
-        });
-
-        if (options.length < 2) {
-          warnings.push(`Questão ${index + 1}: menos de 2 alternativas válidas — será ignorada.`);
-          return;
+        if (lastPart) {
+          currentCategory =
+            lastPart
+              .split('-')
+              .map(
+                word =>
+                  word.charAt(0).toUpperCase() +
+                  word.slice(1).toLowerCase()
+              )
+              .join(' ');
         }
 
-        questions.push({ statement, type, options, correctOption, category, tags });
-        return;
+        continue;
       }
 
-      // ── Verdadeiro/Falso ───────────────────────────────────────────────
+      if (
+        nodeType !== 'multichoice' &&
+        nodeType !== 'truefalse' &&
+        nodeType !== 'essay'
+      ) {
+        continue;
+      }
+
+      const statement =
+        node
+          .querySelector('questiontext text')
+          ?.textContent
+          ?.trim() ?? '';
+
+      if (!stripHtml(statement)) {
+        continue;
+      }
+
+      const tags = Array.from(
+        node.querySelectorAll('tags tag text')
+      )
+        .map(tag => tag.textContent?.trim() ?? '')
+        .filter(Boolean);
+
+      let type: QuestionType = 'multiple_choice';
+
+      if (nodeType === 'truefalse') {
+        type = 'true_false';
+      }
+
+      if (nodeType === 'essay') {
+        type = 'essay';
+      }
+
+      if (type === 'multiple_choice') {
+        const options: string[] = [];
+        let correctOption = 0;
+
+        Array.from(node.querySelectorAll('answer')).forEach(
+          (answer, index) => {
+            const text =
+              answer
+                .querySelector('text')
+                ?.textContent
+                ?.trim() ?? '';
+
+            const fraction = Number(
+              answer.getAttribute('fraction') ?? '0'
+            );
+
+            options.push(text);
+
+            if (fraction > 0) {
+              correctOption = index;
+            }
+          }
+        );
+
+        questions.push({
+          statement,
+          type,
+          options,
+          correctOption,
+          category: currentCategory,
+          tags,
+        });
+
+        continue;
+      }
+
       if (type === 'true_false') {
         let correctAnswer = true;
-        node.querySelectorAll('answer').forEach((answer) => {
-          const fraction = parseFloat(answer.getAttribute('fraction') ?? '0');
-          const text = answer.querySelector('text')?.textContent?.trim().toLowerCase() ?? '';
-          if (fraction > 0) correctAnswer = text === 'true';
-        });
+
+        Array.from(node.querySelectorAll('answer')).forEach(
+          answer => {
+            const fraction = Number(
+              answer.getAttribute('fraction') ?? '0'
+            );
+
+            const text =
+              answer
+                .querySelector('text')
+                ?.textContent
+                ?.toLowerCase()
+                ?.trim() ?? '';
+
+            if (fraction > 0) {
+              correctAnswer = text === 'true';
+            }
+          }
+        );
 
         questions.push({
-          statement, type, options: [], correctOption: 0,
-          correctAnswer, category, tags,
+          statement,
+          type,
+          options: [],
+          correctOption: 0,
+          correctAnswer,
+          category: currentCategory,
+          tags,
         });
-        return;
+
+        continue;
       }
 
-      // ── Questão aberta (essay) ─────────────────────────────────────────
-      if (type === 'essay') {
-        questions.push({
-          statement, type, options: [], correctOption: 0, category, tags,
-        });
-        return;
-      }
-    } catch {
-      warnings.push(`Questão ${index + 1}: erro inesperado ao processar — será ignorada.`);
+      questions.push({
+        statement,
+        type: 'essay',
+        options: [],
+        correctOption: 0,
+        category: currentCategory,
+        tags,
+      });
+
+    } catch (error) {
+      console.error(error);
     }
-  });
-
-  if (questions.length === 0) {
-    return {
-      success: false, questions: [],
-      errors: ['Nenhuma questão válida encontrada no arquivo.'],
-      warnings,
-    };
   }
 
-  return { success: true, questions, errors, warnings };
+  return {
+    success: questions.length > 0,
+    questions,
+    errors,
+    warnings,
+  };
 }
-
 // ─────────────────────────────────────────────
 // IMPORTAR CSV
 // Suporta formato com coluna Tipo (novo) e formato legado (sem Tipo)

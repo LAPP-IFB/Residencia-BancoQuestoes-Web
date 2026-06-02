@@ -570,9 +570,8 @@ export function ExportImportDialog({ questions, onImport, trigger }: ExportImpor
                   <div>
                     <p className="font-medium mb-0.5">Como exportar do Moodle</p>
                     <p className="text-xs text-blue-600">
-                      No Moodle, vá em Banco de Questões &gt; Exportar, selecione as questões e escolha
-                      o formato &quot;Moodle XML&quot;.
-                    </p>
+                    No Moodle, organize as questões em uma categoria (disciplina), depois vá em Banco de Questões &gt; Exportar, escolha o formato &quot;Moodle XML&quot; e selecione as questões desejadas.
+                  </p>
                   </div>
                 </div>
               )}
