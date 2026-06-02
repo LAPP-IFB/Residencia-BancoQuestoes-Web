@@ -264,7 +264,7 @@ export function QuestionForm({
     <>
       {/* Dialog de Imagem */}
       <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
-        <DialogContent className="w-full max-w-[500px]">
+        <DialogContent className="w-full max-w-[500px] max-h-[90vh] overflow-auto p-6">
           <DialogHeader>
             <DialogTitle>Inserir Imagem</DialogTitle>
             <DialogDescription>Upload ou link externo</DialogDescription>
