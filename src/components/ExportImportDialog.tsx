@@ -341,12 +341,9 @@ export function ExportImportDialog({ questions, onImport, trigger }: ExportImpor
                           >
                             <Icon className="h-3.5 w-3.5 text-gray-400 shrink-0 mt-0.5" />
                             <div className="flex-1 min-w-0 space-y-0.5">
-                              <p
-                                className="line-clamp-2 text-xs text-muted-foreground"
-                                dangerouslySetInnerHTML={{
-                                  __html: q.statement.replace(/<[^>]*>/g, '').slice(0, 120),
-                                }}
-                              />
+                              <p className="line-clamp-2 text-xs text-muted-foreground">
+                                {q.statement.slice(0, 120)}
+                              </p>
                               <span className="inline-flex items-center gap-1 text-xs text-gray-400">
                                 <BookOpen className="h-3 w-3" />
                                 {q.category || q.subject}
@@ -527,12 +524,9 @@ export function ExportImportDialog({ questions, onImport, trigger }: ExportImpor
                                 {idx + 1}.
                               </span>
                               <div className="flex-1 min-w-0 space-y-0.5">
-                                <p
-                                  className="line-clamp-2 text-xs text-muted-foreground"
-                                  dangerouslySetInnerHTML={{
-                                    __html: q.statement.replace(/<[^>]*>/g, '').slice(0, 120),
-                                  }}
-                                />
+                                <p className="line-clamp-2 text-xs text-muted-foreground">
+                                  {q.statement.slice(0, 120)}
+                                </p>
                                 <span className="inline-flex items-center gap-1 text-xs text-gray-400">
                                   <BookOpen className="h-3 w-3" />
                                   {q.category}
