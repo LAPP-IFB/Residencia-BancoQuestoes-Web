@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { Button } from './ui/button';
 import { QuestionList } from './QuestionList';
 import { LogOut, Plus, Settings, Sparkles } from 'lucide-react';
-import { Question, Category, User } from '../types/question';
+import { Question, Category, Subject, User } from '../types/question';
 import { Logo } from './Logo';
 import { toast } from 'sonner';
 
@@ -66,6 +66,8 @@ const initialQuestions: Question[] = [
 
 export function QuestionBank({ user, onLogout }: QuestionBankProps) {
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -103,6 +105,22 @@ export function QuestionBank({ user, onLogout }: QuestionBankProps) {
     fetchQuestions();
   }, []);
 
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        const response = await fetch('https://bancodequestoes-api.onrender.com/subjects');
+        if (response.ok) {
+          const data: Subject[] = await response.json();
+          setSubjects(data);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar disciplinas:', error);
+      }
+    };
+
+    fetchSubjects();
+  }, []);
+
   // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleDeleteQuestion = (id: number) => {
@@ -112,32 +130,126 @@ export function QuestionBank({ user, onLogout }: QuestionBankProps) {
     toast.success('Questão excluída com sucesso!');
   };
 
-  const handleImport = (
-    imported: Pick<Question, 'statement' | 'options' | 'correctOption' | 'category' | 'tags' | 'type' | 'correctAnswer'>[]
-  ) => {
-    const existingIds = questions.map((q) => q.id).filter((id): id is number => id !== undefined);
-    const maxId = existingIds.length > 0 ? Math.max(...existingIds) : 0;
+ const handleImport = async (
+  imported: Pick<
+    Question,
+    | 'statement'
+    | 'options'
+    | 'correctOption'
+    | 'category'
+    | 'tags'
+    | 'type'
+    | 'correctAnswer'
+  >[]
+) => {
+  const importedCategories = [
+    ...new Set(
+      imported
+        .map(q => q.category?.trim())
+        .filter(Boolean)
+    ),
+  ];
 
-    const newQuestions: Question[] = imported.map((q, index) => ({
+  const existingSubjects = new Set(
+    subjects.map(s => s.name.toLowerCase())
+  );
+
+  const createdSubjects: Subject[] = [];
+
+  for (const category of importedCategories) {
+    if (
+      !existingSubjects.has(category.toLowerCase())
+    ) {
+      try {
+        const response = await fetch(
+          'https://bancodequestoes-api.onrender.com/subjects',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name: category,
+              createdAt: new Date().toISOString(),
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const subject = await response.json();
+
+          createdSubjects.push(subject);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  }
+
+  if (createdSubjects.length) {
+    setSubjects(prev => [
+      ...prev,
+      ...createdSubjects,
+    ]);
+
+    setCategories(prev => [
+      ...prev,
+      ...createdSubjects.map(subject => ({
+        id: String(subject.id),
+        name: subject.name,
+      })),
+    ]);
+  }
+
+  const maxId =
+    questions.length > 0
+      ? Math.max(
+          ...questions.map(q => q.id ?? 0)
+        )
+      : 0;
+
+  const newQuestions: Question[] = imported.map(
+    (q, index) => ({
       id: maxId + index + 1,
       authorId: user.id,
       authorName: user.name,
+
       subject: q.category,
       category: q.category,
-      tags: q.tags,
-      type: q.type ?? 'multiple_choice',
-      statement: q.statement,
-      options: q.options,
-      correctOption: q.correctOption,
-      correctAnswer: q.correctAnswer,
-      createdAt: new Date().toISOString(),
-    }));
 
-    const updated = [...questions, ...newQuestions];
-    setQuestions(updated);
-    localStorage.setItem('questions', JSON.stringify(updated));
-    toast.success(`${newQuestions.length} questão(ões) importada(s) com sucesso!`);
-  };
+      tags: q.tags ?? [],
+
+      type: q.type ?? 'multiple_choice',
+
+      statement: q.statement,
+
+      options: q.options ?? [],
+
+      correctOption:
+        q.correctOption ?? 0,
+
+      correctAnswer: q.correctAnswer,
+
+      createdAt: new Date().toISOString(),
+    })
+  );
+
+  const updated = [
+    ...questions,
+    ...newQuestions,
+  ];
+
+  setQuestions(updated);
+
+  localStorage.setItem(
+    'questions',
+    JSON.stringify(updated)
+  );
+
+  toast.success(
+    `${newQuestions.length} questão(ões) importada(s) com sucesso!`
+  );
+};
 
   const handleLogoutClick = () => {
     onLogout();
