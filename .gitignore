@@ -1,3 +1,4 @@
 node_modules
 .qodo
 build
+package-lock.json
