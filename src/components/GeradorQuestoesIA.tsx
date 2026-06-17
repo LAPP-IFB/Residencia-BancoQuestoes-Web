@@ -1,25 +1,30 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Sparkles, Save, Loader2, CheckSquare } from 'lucide-react';
+import { Sparkles, Save, Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 interface QuestaoGerada {
-  id: string;
-  enunciado: string;
-  alternativas: string[];
-  corretaIndex: number;
-  dificuldade: string;
+  id: string | number;
+  statement: string;
+  options: string[];
+  correctOption: number;
+  subject: string;
+  tags?: string[];
+  authorName?: string;
 }
 
 export function GeradorQuestoesIA() {
+  const navigate = useNavigate();
+  
   const [tema, setTema] = useState('');
   const [dificuldade, setDificuldade] = useState('Médio');
   const [contexto, setContexto] = useState('');
   const [loading, setLoading] = useState(false);
   
   const [questoesGeradas, setQuestoesGeradas] = useState<QuestaoGerada[]>([]);
-  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+  const [selecionadas, setSelecionadas] = useState<Set<string | number>>(new Set());
 
   const handleGerarQuestoes = async () => {
     if (!tema) {
@@ -29,29 +34,29 @@ export function GeradorQuestoesIA() {
 
     setLoading(true);
 
-    // AQUI ENTRARÁ O SEU FETCH REAL PARA A API NO FUTURO
-    // Simulando um tempo de espera da IA (2 segundos)
     setTimeout(() => {
       const mockResultado: QuestaoGerada[] = [
         {
           id: `q-${Date.now()}-1`,
-          enunciado: `Baseado no tema "${tema}" com foco em "${contexto || 'aspectos gerais'}", qual das alternativas abaixo está correta?`,
-          alternativas: [
+          statement: `Baseado no tema "${tema}" com foco em "${contexto || 'aspectos gerais'}", qual das alternativas abaixo está correta?`,
+          options: [
             "Alternativa A (Incorreta)",
             "Alternativa B (Correta)",
             "Alternativa C (Incorreta)",
             "Alternativa D (Incorreta)",
             "Alternativa E (Incorreta)"
           ],
-          corretaIndex: 1,
-          dificuldade: dificuldade
+          correctOption: 1,
+          subject: "Língua Portuguesa",
+          tags: ["Gramática", dificuldade]
         },
         {
           id: `q-${Date.now()}-2`,
-          enunciado: `Analise as afirmações sobre "${tema}" e marque a opção verdadeira.`,
-          alternativas: ["Opção 1", "Opção 2", "Opção 3", "Opção 4 (Correta)", "Opção 5"],
-          corretaIndex: 3,
-          dificuldade: dificuldade
+          statement: `Analise as afirmações sobre "${tema}" e marque a opção verdadeira.`,
+          options: ["Opção 1", "Opção 2", "Opção 3", "Opção 4 (Correta)", "Opção 5"],
+          correctOption: 3,
+          subject: "Língua Portuguesa",
+          tags: ["Gramática", dificuldade]
         }
       ];
       setQuestoesGeradas(mockResultado);
@@ -60,7 +65,7 @@ export function GeradorQuestoesIA() {
     }, 2000);
   };
 
-  const toggleSelecao = (id: string) => {
+  const toggleSelecao = (id: string | number) => {
     const novasSelecionadas = new Set(selecionadas);
     if (novasSelecionadas.has(id)) {
       novasSelecionadas.delete(id);
@@ -70,20 +75,43 @@ export function GeradorQuestoesIA() {
     setSelecionadas(novasSelecionadas);
   };
 
-  const handleSalvarLote = () => {
-    console.log("Salvando as seguintes questões:", Array.from(selecionadas));
-    toast.success(`${selecionadas.size} questões salvas no banco de dados!`);
+  const handleSalvarLote = async () => {
+    const questoesParaSalvar = questoesGeradas.filter(q => selecionadas.has(q.id));
+    executarSalvamento(questoesParaSalvar);
+  };
+
+  const executarSalvamento = (questoes: QuestaoGerada[]) => {
+    console.log("Enviando para a API (https://bancodequestoes-api.onrender.com/questions):", questoes);
     
-    // Limpa a tela após salvar
+    // AQUI ENTRA O FETCH REAL PARA A SUA API NO FUTURO
+    
+    toast.success(`${questoes.length} questão(ões) salva(s) com sucesso!`);
+    
     setSelecionadas(new Set());
     setQuestoesGeradas([]);
     setTema('');
     setContexto('');
+
+    // Voltar para a página inicial
+    navigate('/'); 
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-8">
-      {/* 1. ÁREA DE CONFIGURAÇÃO (O PROMPT) */}
+    <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
+      
+      {/* BOTÃO VOLTAR */}
+      <div className="flex items-center justify-between">
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate('/')} 
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Voltar para a Página Inicial
+        </Button>
+      </div>
+
+      {/* ÁREA DE CONFIGURAÇÃO */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
         <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
           <Sparkles className="w-6 h-6 text-purple-600" />
@@ -126,8 +154,19 @@ export function GeradorQuestoesIA() {
           </div>
         </div>
 
-        <div className="mt-6 flex justify-end">
-          {/* CORREÇÃO DO BOTÃO: Usando a estrutura padrão e limpa */}
+        {/* BOTÕES: SALVAR E GERAR (Lado a lado) */}
+        <div className="mt-6 flex flex-wrap justify-end gap-4">
+          <Button 
+            onClick={handleSalvarLote} 
+            disabled={selecionadas.size === 0} 
+            size="lg"
+            variant="outline"
+            className={selecionadas.size > 0 ? "bg-green-600 hover:bg-green-700 text-black border-none" : ""}
+          >
+            <Save className="mr-2 h-5 w-5" />
+            Salvar ({selecionadas.size}) e Voltar
+          </Button>
+
           <Button onClick={handleGerarQuestoes} disabled={loading} size="lg">
             {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Sparkles className="mr-2 h-5 w-5" />}
             {loading ? 'Gerando com IA...' : 'Gerar Questões'}
@@ -135,12 +174,14 @@ export function GeradorQuestoesIA() {
         </div>
       </div>
 
-      {/* 2. ÁREA DE RESULTADOS */}
+      {/* ÁREA DE RESULTADOS */}
       {questoesGeradas.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
           <div className="flex justify-between items-center border-b pb-4">
-            <h3 className="text-xl font-bold text-gray-800">Resultados Gerados</h3>
-            <span className="text-sm text-gray-500">{questoesGeradas.length} questões</span>
+            <div>
+              <h3 className="text-xl font-bold text-gray-800">Resultados Gerados</h3>
+              <span className="text-sm text-gray-500">Marque as caixinhas abaixo e depois clique no botão "Salvar" lá em cima.</span>
+            </div>
           </div>
 
           <div className="grid gap-6">
@@ -155,21 +196,21 @@ export function GeradorQuestoesIA() {
                       type="checkbox" 
                       checked={selecionadas.has(q.id)}
                       onChange={() => toggleSelecao(q.id)}
-                      className="w-5 h-5 text-purple-600 rounded cursor-pointer"
+                      className="w-6 h-6 text-purple-600 rounded cursor-pointer"
                     />
                   </div>
                   
                   <div className="flex-1 space-y-4">
                     <div className="flex items-center gap-2">
                       <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-semibold uppercase">Questão {index + 1}</span>
-                      <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-semibold uppercase">{q.dificuldade}</span>
+                      <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-semibold uppercase">{q.subject}</span>
                     </div>
                     
-                    <p className="text-gray-800 font-medium text-lg leading-relaxed">{q.enunciado}</p>
+                    <p className="text-gray-800 font-medium text-lg leading-relaxed">{q.statement}</p>
                     
                     <div className="space-y-2 pl-4">
-                      {q.alternativas.map((alt, idx) => (
-                        <div key={idx} className={`p-3 rounded-lg border ${idx === q.corretaIndex ? 'bg-green-50 border-green-200 text-green-800 font-medium' : 'bg-gray-50 border-gray-100 text-gray-700'}`}>
+                      {q.options.map((alt, idx) => (
+                        <div key={idx} className={`p-3 rounded-lg border ${idx === q.correctOption ? 'bg-green-50 border-green-200 text-green-800 font-medium' : 'bg-gray-50 border-gray-100 text-gray-700'}`}>
                           <span className="mr-3 font-bold">{String.fromCharCode(65 + idx)}.</span>
                           {alt}
                         </div>
@@ -180,26 +221,6 @@ export function GeradorQuestoesIA() {
               </div>
             ))}
           </div>
-        </motion.div>
-      )}
-
-      {/* 3. BARRA DE AÇÕES FLUTUANTE */}
-      {selecionadas.size > 0 && (
-        <motion.div 
-          initial={{ y: 100 }} 
-          animate={{ y: 0 }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-6 z-50"
-        >
-          <div className="flex items-center gap-2">
-            <CheckSquare className="w-5 h-5 text-purple-400" />
-            <span className="font-medium">{selecionadas.size} {selecionadas.size === 1 ? 'selecionada' : 'selecionadas'}</span>
-          </div>
-          
-          {/* CORREÇÃO DO BOTÃO INFERIOR */}
-          <Button onClick={handleSalvarLote} variant="secondary" size="lg" className="rounded-full font-bold">
-            <Save className="mr-2 w-4 h-4" />
-            Salvar no Banco
-          </Button>
         </motion.div>
       )}
     </div>
